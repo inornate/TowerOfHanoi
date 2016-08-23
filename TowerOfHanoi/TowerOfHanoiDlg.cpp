@@ -7,6 +7,8 @@
 #include "TowerOfHanoiDlg.h"
 #include "afxdialogex.h"
 
+#include "hanoi.h"
+
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif
@@ -47,24 +49,35 @@ END_MESSAGE_MAP()
 
 // CTowerOfHanoiDlg 대화 상자
 
-
-
 CTowerOfHanoiDlg::CTowerOfHanoiDlg(CWnd* pParent /*=NULL*/)
 	: CDialogEx(IDD_TOWEROFHANOI_DIALOG, pParent)
+	, muiNumPlate(0)
+	, mstrDebugPrint(_T(""))
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
+
+	// 원판갯수를 가지고 있는 콘트롤의 초기값 설정.
+	mpHanoi = NULL;
+	muiNumPlate = 3;	// 초기값 3.
 }
 
 void CTowerOfHanoiDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialogEx::DoDataExchange(pDX);
 	DDX_Control(pDX, IDC_PIC_HANOI, mctrPictureHanoi);
+	DDX_Text(pDX, IDC_EDIT_NUMPLATE, muiNumPlate);
+	DDV_MinMaxUInt(pDX, muiNumPlate, 1, 10);
+	DDX_Text(pDX, IDC_EDIT_DEBUGPRINT, mstrDebugPrint);
+	DDX_Control(pDX, IDC_SPIN_NUMPLATE, mctrSpinNumPlate);
 }
 
 BEGIN_MESSAGE_MAP(CTowerOfHanoiDlg, CDialogEx)
 	ON_WM_SYSCOMMAND()
 	ON_WM_PAINT()
 	ON_WM_QUERYDRAGICON()
+	ON_BN_CLICKED(IDC_BUTTON_START, &CTowerOfHanoiDlg::OnBnClickedButtonStart)
+	ON_NOTIFY(UDN_DELTAPOS, IDC_SPIN_NUMPLATE, &CTowerOfHanoiDlg::OnDeltaposSpinNumplate)
+	ON_EN_CHANGE(IDC_EDIT_NUMPLATE, &CTowerOfHanoiDlg::OnEnChangeEditNumplate)
 END_MESSAGE_MAP()
 
 
@@ -100,6 +113,8 @@ BOOL CTowerOfHanoiDlg::OnInitDialog()
 	SetIcon(m_hIcon, FALSE);		// 작은 아이콘을 설정합니다.
 
 	// TODO: 여기에 추가 초기화 작업을 추가합니다.
+	mctrSpinNumPlate.SetRange(1, 10);
+	mpHanoi = new Hanoi(muiNumPlate, (void *)this);
 
 	return TRUE;  // 포커스를 컨트롤에 설정하지 않으면 TRUE를 반환합니다.
 }
@@ -143,6 +158,26 @@ void CTowerOfHanoiDlg::OnPaint()
 	else
 	{
 		CDialogEx::OnPaint();
+		UINT index;
+		CDC *pDC = mctrPictureHanoi.GetWindowDC();
+		CRect rect;
+
+		GetClientRect(&rect);
+		pDC->FillSolidRect(rect, RGB(255, 255, 255));	
+
+		mpHanoi->DrawPeg(pDC);
+
+		UpdateData(TRUE);
+		if (muiNumPlate != mpHanoi->mNumPlates)
+		{			
+			mstrDebugPrint = _T("");
+			mpHanoi->InitPlateStatus(muiNumPlate);
+		}
+		UpdateData(FALSE);
+
+		for (index = 0; index < muiNumPlate; index++)
+			mpHanoi->DrawPlate(pDC, index);
+		mctrPictureHanoi.ReleaseDC(pDC);
 	}
 }
 
@@ -153,3 +188,39 @@ HCURSOR CTowerOfHanoiDlg::OnQueryDragIcon()
 	return static_cast<HCURSOR>(m_hIcon);
 }
 
+void CTowerOfHanoiDlg::OnBnClickedButtonStart()
+{
+	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
+	mpHanoi->DoHanoi();
+}
+
+
+void CTowerOfHanoiDlg::DebugPrint(CString msg)
+{
+	UpdateData(TRUE);
+	mstrDebugPrint += msg;
+	UpdateData(FALSE);
+}
+
+CDC * CTowerOfHanoiDlg::GetDC(void)
+{
+	return mctrPictureHanoi.GetWindowDC();
+}
+
+void CTowerOfHanoiDlg::OnDeltaposSpinNumplate(NMHDR *pNMHDR, LRESULT *pResult)
+{
+	LPNMUPDOWN pNMUpDown = reinterpret_cast<LPNMUPDOWN>(pNMHDR);
+	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
+	*pResult = 0;
+}
+
+void CTowerOfHanoiDlg::OnEnChangeEditNumplate()
+{
+	// TODO:  RICHEDIT 컨트롤인 경우, 이 컨트롤은
+	// CDialogEx::OnInitDialog() 함수를 재지정 
+	//하고 마스크에 OR 연산하여 설정된 ENM_CHANGE 플래그를 지정하여 CRichEditCtrl().SetEventMask()를 호출하지 않으면
+	// 이 알림 메시지를 보내지 않습니다.
+
+	// TODO:  여기에 컨트롤 알림 처리기 코드를 추가합니다.
+	Invalidate();
+}
