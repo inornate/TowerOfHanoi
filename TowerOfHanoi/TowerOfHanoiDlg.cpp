@@ -76,7 +76,6 @@ BEGIN_MESSAGE_MAP(CTowerOfHanoiDlg, CDialogEx)
 	ON_WM_PAINT()
 	ON_WM_QUERYDRAGICON()
 	ON_BN_CLICKED(IDC_BUTTON_START, &CTowerOfHanoiDlg::OnBnClickedButtonStart)
-	ON_NOTIFY(UDN_DELTAPOS, IDC_SPIN_NUMPLATE, &CTowerOfHanoiDlg::OnDeltaposSpinNumplate)
 	ON_EN_CHANGE(IDC_EDIT_NUMPLATE, &CTowerOfHanoiDlg::OnEnChangeEditNumplate)
 END_MESSAGE_MAP()
 
@@ -159,17 +158,21 @@ void CTowerOfHanoiDlg::OnPaint()
 	{
 		CDialogEx::OnPaint();
 		UINT index;
-		CDC *pDC = mctrPictureHanoi.GetWindowDC();
+		CDC *pDC = mctrPictureHanoi.GetWindowDC();	// 대화상자 안에 있는 Picture control의 Device Context를 얻는다.
 		CRect rect;
 
+		// Picture Control의 전체를 하얀색으로 덮는다.
 		GetClientRect(&rect);
 		pDC->FillSolidRect(rect, RGB(255, 255, 255));	
 
+		// 3개의 Peg을 그린다.
 		mpHanoi->DrawPeg(pDC);
 
+		// Edit control의 원판의 갯수와 Hanoi class가 가진 원판의 갯수가 다르면 다시 그린다.
 		UpdateData(TRUE);
 		if (muiNumPlate != mpHanoi->mNumPlates)
-		{			
+		{
+			// 원판의 갯수가 바뀌었기 때문에 원판갯수를 초기화하고, 텍스트 결과창을 지운다.
 			mstrDebugPrint = _T("");
 			mpHanoi->InitPlateStatus(muiNumPlate);
 		}
@@ -188,13 +191,14 @@ HCURSOR CTowerOfHanoiDlg::OnQueryDragIcon()
 	return static_cast<HCURSOR>(m_hIcon);
 }
 
+// 시작 버튼을 눌렀을 때 실행되는 이벤트 콜백 함수
 void CTowerOfHanoiDlg::OnBnClickedButtonStart()
 {
 	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
 	mpHanoi->DoHanoi();
 }
 
-
+// 대화상자의 DebugPrint용 Edit control에 스트링을 표시한다.
 void CTowerOfHanoiDlg::DebugPrint(CString msg)
 {
 	UpdateData(TRUE);
@@ -202,16 +206,10 @@ void CTowerOfHanoiDlg::DebugPrint(CString msg)
 	UpdateData(FALSE);
 }
 
+// 대화상자가 가진 Picture control의 DC를 전달하기 위한 함수.
 CDC * CTowerOfHanoiDlg::GetDC(void)
 {
 	return mctrPictureHanoi.GetWindowDC();
-}
-
-void CTowerOfHanoiDlg::OnDeltaposSpinNumplate(NMHDR *pNMHDR, LRESULT *pResult)
-{
-	LPNMUPDOWN pNMUpDown = reinterpret_cast<LPNMUPDOWN>(pNMHDR);
-	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
-	*pResult = 0;
 }
 
 void CTowerOfHanoiDlg::OnEnChangeEditNumplate()
@@ -222,5 +220,7 @@ void CTowerOfHanoiDlg::OnEnChangeEditNumplate()
 	// 이 알림 메시지를 보내지 않습니다.
 
 	// TODO:  여기에 컨트롤 알림 처리기 코드를 추가합니다.
-	Invalidate();
+	// 에디트 컨트롤이 변경된것은 원판의 갯수가 변경된 것이므로,
+	// 화면을 다시 그려서 변경된 원판을 보여줘야한다.
+	Invalidate();	
 }

@@ -4,6 +4,7 @@
 // For Debug print to edit control in Dialog
 #include "TowerOfHanoiDlg.h"
 
+// 색상정보: type COLORREF
 #define COLOR_YELLOW	RGB(255, 255, 0)
 #define COLOR_ORANGE	RGB(255, 128, 0)
 #define COLOR_RED		RGB(255, 0, 0)
@@ -16,6 +17,7 @@
 #define COLOR_BLACK		RGB(0, 0, 0)
 #define COLOR_WHITE		RGB(255, 255, 255)
 
+// 원판의 mId에 따라 유일한 색을 할당하기 위한 배열
 static COLORREF gColorTable[MAX_PLATE] = {
 	COLOR_YELLOW,
 	COLOR_ORANGE,
@@ -29,7 +31,7 @@ static COLORREF gColorTable[MAX_PLATE] = {
 	COLOR_BLACK,
 };
 
-// 그림 그리는 함수들
+// 그림 그리는데 사용되는 좌표 및 크기정보.
 #define DRAWAREA_POR_X	20
 #define DRAWAREA_POR_Y	40
 
@@ -59,6 +61,7 @@ static COLORREF gColorTable[MAX_PLATE] = {
 
 #define PLATE_HEIGHT	20
 
+// 생성자에 의해 ID가 결정되었으므로 원판의 크기와 색깔이 결정된다.
 Plate::Plate(UINT id)
 {
 	mId = id;
@@ -66,7 +69,8 @@ Plate::Plate(UINT id)
 	mColor = gColorTable[id];
 }
 
-
+// bDraw에 의해 현재의 원판을 그리거나 지운다.
+// TRUE: 그린다. FALSE: 원판을 지우고 기둥부분을 그린다.
 void Plate::Draw(CDC *pDC, BOOLEAN bDraw)
 {
 	CRect rect;
@@ -102,10 +106,16 @@ void Plate::Draw(CDC *pDC, BOOLEAN bDraw)
 	return;
 }
 
-void Plate::Move(UINT to, UINT row)
+// 원판이 옮겨진 위치정보를 저장한다
+void Plate::Move(CDC *pDC, UINT to, UINT row)
 {
+	// Plate 현재 위치를 지운다.
+	Draw(pDC, FALSE);
+
 	mPosPeg = to;
 	mPosRow = row;
+
+	Draw(pDC, TRUE);
 
 	return;
 }
@@ -116,25 +126,42 @@ Hanoi::Hanoi(UINT num_plate, void *pDlg)
 	UINT index;
 	CTowerOfHanoiDlg *pclsDlg = (CTowerOfHanoiDlg *)pDlg;
 
+	// Hanoi 클래스의 인스턴스를 만든 클래스의 포인터를 저장한다.
+	// 상위 클래스의 public 메소드를 이용할 때 사용한다.
 	mpclsDialog = pDlg;
 
-	// TODO: 대화상자의 Edit control에서 설정된 plate의 갯수를 가져온다.	
+	// Hanoi클래스가 만들어 질 때 mNumPlates = 0 으로 초기화 한다.
+	// 왜냐하면 OnInitDialog()에서 InitPlateStatus()를 호출하면서 mNumPlates를 초기화 하게 된다.
+	mNumPlates = 0;
 
 	// Plate객체를 만들어둔다.
 	for (index = 0; index < MAX_PLATE; index++)
-		pPlate[index] = new Plate(index);	// Plate객채의 동적생성. Plate의 index는 1부터 시작.
-	
-	InitPlateStatus(pclsDlg->muiNumPlate);
+		pPlate[index] = new Plate(index);	// Plate객채의 동적생성.
 }
 
+// 만들었던 원판 객체를 메모리에서 해제한다.
+Hanoi::~Hanoi(void)
+{
+	UINT index;
+
+	for (index = 0; index < MAX_PLATE; index++)
+	{
+		delete pPlate[index];	// 동적으로 생성되었던 Plate객체의 해제.
+	}
+}
+
+
+// Hanoi를 시작하기 전에 Peg 0에 설정한 만큼의 원판을 걸어주는 함수.
 void Hanoi::InitPlateStatus(UINT numPlate)
 {
 	// mPlateStatus 초기화.
 	UINT numPeg, numRow;
 	UINT index;
 
+	// Hanoi 클래스가 갖는 원판의 갯수를 설정한다.
 	mNumPlates = numPlate;
 
+	// Peg에 걸려있는 원판의 번호를 저장하는 배열의 초기화.
 	for (numPeg = 0; numPeg < NUM_PEGS; numPeg++)
 		for (numRow = 0; numRow < MAX_PLATE; numRow++)
 			mPlateStatus[numPeg][numRow] = NO_PLATE;
@@ -155,22 +182,15 @@ void Hanoi::InitPlateStatus(UINT numPlate)
 	}
 }
 
-Hanoi::~Hanoi(void)
-{
-	UINT index;
-	
-	for (index = 0; index < MAX_PLATE; index++)
-	{
-		delete pPlate[index];	// 동적으로 생성되었던 Plate객체의 해제.
-	}
-}
-
+// Hanoi tower의 원판을 옯기는 함수를 실행하는 시작점.
 void Hanoi::DoHanoi(void)
 {
+	
 	TowerOfHanoi(0, 1, 2, mNumPlates);
 	return;
 }
 
+// from에 있는 원판 num_plate개를 use를 이용하여 to로 보내는 함수 
 void Hanoi::TowerOfHanoi(UINT from, UINT use, UINT to, UINT num_plate)
 {
 	if (num_plate == 0)
@@ -183,6 +203,7 @@ void Hanoi::TowerOfHanoi(UINT from, UINT use, UINT to, UINT num_plate)
 	return;
 }
 
+// 원판을 from에서 to로 옮기는 연산.
 void Hanoi::Move(UINT from, UINT to)
 {
 	UINT id;
@@ -210,20 +231,15 @@ void Hanoi::Move(UINT from, UINT to)
 	// row_to의 자리에 옮겨 놓여질 plate의 id를 적는다.
 	mPlateStatus[to][row_to] = id;
 
-	// Plate 현재 위치를 지운다.
-	pPlate[id]->Draw(pDC, FALSE);
-
 	// Plate 인스턴스의 값을 바꾼다.
-	pPlate[id]->Move(to, row_to);
+	pPlate[id]->Move(pDC, to, row_to);
 	
-	// Plate 바뀐 위치를 그린다.
-	pPlate[id]->Draw(pDC, TRUE);
-			
+	// 원판이 옮겨지는것을 텍스트로 표시.
 	msgDebug.Format(_T("(%d, %d) --> (%d, %d)\r\n"), from, row_from - 1, to, row_to);
 	pclsDebugDlg->DebugPrint(msgDebug);
 }
 
-
+// 화면에 고정된 기둥을 그리는 함수.
 void Hanoi::DrawPeg(CDC *pDC)
 {
 	// 그림그리는 기준점 TOP-LEFT, Point of Reference(POR)
@@ -291,6 +307,7 @@ void Hanoi::DrawPeg(CDC *pDC)
 	return;
 }
 
+// Hanoi클래스를 통해서 index에 해당하는 원판을 그리기 위한 함수.
 void Hanoi::DrawPlate(CDC *pDC, UINT index)
 {
 	pPlate[index]->Draw(pDC, TRUE);

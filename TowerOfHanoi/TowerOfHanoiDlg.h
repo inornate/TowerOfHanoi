@@ -50,7 +50,6 @@ public:
 	void DebugPrint(CString msg);
 	// DebugPrint를 출력할 Edit control의 CString 변수
 	CString mstrDebugPrint;
-	afx_msg void OnDeltaposSpinNumplate(NMHDR *pNMHDR, LRESULT *pResult);
 	// 원판의 갯수를 조절하는 스핀콘트롤
 	CSpinButtonCtrl mctrSpinNumPlate;
 	afx_msg void OnEnChangeEditNumplate();
